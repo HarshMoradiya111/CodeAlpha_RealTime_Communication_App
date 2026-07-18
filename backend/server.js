@@ -36,12 +36,17 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  socket.on('join-room', (roomId) => {
+  socket.on('join-room', ({ roomId }) => {
+    const existingRoom = io.sockets.adapter.rooms.get(roomId);
+    const otherSocketIds = existingRoom ? [...existingRoom].filter((socketId) => socketId !== socket.id) : [];
+
     socket.join(roomId);
+    socket.emit('all-users', otherSocketIds);
+    socket.to(roomId).emit('user-joined', socket.id);
   });
 
-  socket.on('signal', ({ roomId, data }) => {
-    socket.to(roomId).emit('signal', data);
+  socket.on('signal', ({ targetId, signal }) => {
+    socket.to(targetId).emit('signal', { senderId: socket.id, signal });
   });
 
   socket.on('draw', ({ roomId, data }) => {
