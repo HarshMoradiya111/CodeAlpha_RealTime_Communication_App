@@ -5,6 +5,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
+const authRoutes = require('./routes/auth');
+const roomRoutes = require('./routes/rooms');
+
 const app = express();
 const port = process.env.PORT || 5003;
 const mongoUri = process.env.MONGO_URI;
@@ -21,6 +24,9 @@ app.locals.io = io;
 app.use(cors({ origin: clientUrl }));
 app.use(express.json());
 
+app.use('/api/auth', authRoutes);
+app.use('/api/rooms', roomRoutes);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'CodeAlpha RealTime Communication App API' });
 });
@@ -32,6 +38,14 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
+  });
+
+  socket.on('signal', ({ roomId, data }) => {
+    socket.to(roomId).emit('signal', data);
+  });
+
+  socket.on('draw', ({ roomId, data }) => {
+    socket.to(roomId).emit('draw', data);
   });
 });
 
